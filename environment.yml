@@ -1,0 +1,13 @@
+name: glaciermatch
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - numpy
+  - scipy
+  - pandas
+  - rasterio        # pulls in GDAL and affine
+  - opencv          # cv2: matchTemplate / pyrDown
+  - pyside6         # Qt GUI
+  - pytest
+  - pip

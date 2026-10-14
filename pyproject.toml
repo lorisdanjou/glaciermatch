@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "glaciermatch"
+version = "0.1.0"
+description = "Cross-correlation image matching of satellite images to retrieve glacier motion"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy",
+    "scipy",
+    "rasterio",
+    "opencv-python-headless",
+    "pandas",
+    "PySide6",
+]
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+[tool.setuptools]
+packages = ["glaciermatch"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
