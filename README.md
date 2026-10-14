@@ -1,5 +1,7 @@
 # glaciermatch
 
+AI-generated code to do image matching on satellite glacier images.
+
 Retrieve glacier surface motion from two satellite images of the same area by
 cross-correlation feature tracking. Pick sample points on the first image, and the tool
 finds where each one moved to in the second image, using normalised cross-correlation
