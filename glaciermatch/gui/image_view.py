@@ -35,12 +35,13 @@ class ImageView(QGraphicsView):
     def __init__(self, parent=None):
         self._scene = QGraphicsScene()   # keep a Python reference
         super().__init__(self._scene, parent)
-        self.setTransformationAnchor(QGraphicsView.AnchorUnderMouse)
+        self.setTransformationAnchor(QGraphicsView.NoAnchor)  # zoom anchoring is done in wheelEvent
         self.setResizeAnchor(QGraphicsView.AnchorViewCenter)
         self.setDragMode(QGraphicsView.NoDrag)
         self.setMouseTracking(True)
         self.setBackgroundBrush(QColor(30, 30, 30))
         self._pix: QGraphicsPixmapItem | None = None
+        self._img_rect = QRectF()
         self._qimage: QImage | None = None
         self._layers: dict[str, list[QGraphicsItem]] = {}
         self._press = None
@@ -56,7 +57,11 @@ class ImageView(QGraphicsView):
         self.scene().clear()
         self._pix = self.scene().addPixmap(QPixmap.fromImage(self._qimage))
         self._pix.setZValue(0)
-        self.scene().setSceneRect(QRectF(0, 0, w, h))
+        self._img_rect = QRectF(0, 0, w, h)
+        # Margin around the image so the view can scroll freely: without it, an image smaller
+        # than the viewport has no scroll range and zooming cannot keep the cursor point fixed.
+        m = max(w, h)
+        self.scene().setSceneRect(self._img_rect.adjusted(-m, -m, m, m))
         self.fit()
 
     def has_image(self) -> bool:
@@ -64,7 +69,7 @@ class ImageView(QGraphicsView):
 
     def fit(self) -> None:
         if self._pix is not None:
-            self.fitInView(self.scene().sceneRect(), Qt.KeepAspectRatio)
+            self.fitInView(self._img_rect, Qt.KeepAspectRatio)
             self.viewChanged.emit()
 
     def sync_from(self, other: "ImageView") -> None:
@@ -135,7 +140,14 @@ class ImageView(QGraphicsView):
         f = 1.25 ** (ev.angleDelta().y() / 120.0)
         s = self.transform().m11() * f
         if 0.02 <= s <= 300:
+            # Keep the scene point under the cursor fixed on screen.
+            pos = ev.position().toPoint()
+            before = self.mapToScene(pos)
             self.scale(f, f)
+            # With NoAnchor the scroll position is unchanged, so the view centre moved too.
+            centre = self.mapToScene(self.viewport().rect().center())
+            after = self.mapToScene(pos)
+            self.centerOn(centre + before - after)
             self.viewChanged.emit()
 
     def mousePressEvent(self, ev):

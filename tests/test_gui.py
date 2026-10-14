@@ -88,3 +88,29 @@ def test_no_overlap_shows_error(app, tmp_path):
     w.open_image(1, p1); w.open_image(2, p2)
     assert not w.btn_coreg.isEnabled()
     assert any("do not overlap" in w.checks_list.item(i).text() for i in range(w.checks_list.count()))
+
+
+def test_zoom_keeps_point_under_cursor(app, tmp_path):
+    from PySide6.QtCore import QPoint, QPointF
+    from PySide6.QtGui import QWheelEvent
+
+    arr = make_texture((300, 400), seed=2)
+    p1 = write_tif(tmp_path / "a.tif", arr, (500000.0, 5000000.0))
+    w = MainWindow(); w.resize(1400, 800); w.show()
+    w.open_image(1, p1); w.open_image(2, p1)
+    w.run_coregistration()
+    wait_for(app, lambda: w.coreg is not None)
+    v = w.view1
+    for pos in (QPoint(150, 120), QPoint(v.viewport().width() - 60, v.viewport().height() - 50)):
+        for delta in (120, 120, 120, -120, 120):
+            before = v.mapToScene(pos)
+            ev = QWheelEvent(QPointF(pos), QPointF(v.mapToGlobal(pos)), QPoint(0, 0), QPoint(0, delta),
+                             Qt.NoButton, Qt.NoModifier, Qt.NoScrollPhase, False)
+            v.wheelEvent(ev)
+            after = v.mapToScene(pos)
+            tol = 2.0 / v.transform().m11()   # integer scrollbars: within ~2 screen pixels
+            assert abs(after.x() - before.x()) < tol and abs(after.y() - before.y()) < tol
+    assert v.transform().m11() > 1.5
+    # linked view follows the zoom level
+    assert w.view2.transform().m11() == pytest.approx(v.transform().m11())
+    w.close()
